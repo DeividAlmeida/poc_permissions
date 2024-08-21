@@ -4,5 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = "0.6.6"
-tokio = { version = "1.0", features = ["full"] }
+axum = "0.7.5"
+dotenv = "0.15.0"
+mongodb = "3.0.1"
+serde_json = "1.0.125"
+tokio = { version = "1.39.3", features = ["full"] }
