@@ -3,6 +3,7 @@ mod controllers;
 mod serializers;
 mod routes;
 mod db;
+mod middleware;
 
 #[tokio::main]
 async fn main() {

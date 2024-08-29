@@ -5,7 +5,6 @@ use mongodb::{bson::{ doc, oid::ObjectId, DateTime, Document }, error::Error, Da
 pub async fn get_key() -> Result<Option<Document>, Error> {
   let document = match connect().await {
     Ok(config) => {
-      print!("db connected");
        let res = config.database.collection::<Document>("settings_keys").find_one(doc! { 
         "constantName": "CAPEX_ANUAL_MANDATORY" 
       }).await.unwrap();
@@ -13,7 +12,6 @@ pub async fn get_key() -> Result<Option<Document>, Error> {
       Ok(res)
     },
     Err(e) => {
-      println!("db connection error {:?}", e);
       Err(e)
     }  
   };

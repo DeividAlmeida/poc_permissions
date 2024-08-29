@@ -1,14 +1,17 @@
-use axum::response::Json;
+use axum::{
+  extract::Request, http::{header::{HeaderMap, HeaderValue}, request}, response::Json
+};
 use serde_json::{Value, json};
 use crate::serializers::get_key;
+struct ExtractUserAgent(HeaderValue);
 
-pub async fn hello() -> Json<Value> {
+pub async fn hello(request:Request) -> Json<Value> {
+  // dbg!(request.headers().get("user-agent"));
   let key = get_key().await;
   return  match key {
     Ok(key) => Json(json!(key.unwrap())),
     Err(e) => {
-      println!("error {:?}", e);
-      return Json(json!({ "error": "error" }))
+      return Json(json!({ "error": e.to_string() }));
     }
   };
 }
