@@ -7,11 +7,5 @@ struct ExtractUserAgent(HeaderValue);
 
 pub async fn hello(request:Request) -> Json<Value> {
   // dbg!(request.headers().get("user-agent"));
-  let key = get_key().await;
-  return  match key {
-    Ok(key) => Json(json!(key.unwrap())),
-    Err(e) => {
-      return Json(json!({ "error": e.to_string() }));
-    }
-  };
+  get_key().await
 }
