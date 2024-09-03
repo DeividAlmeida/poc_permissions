@@ -1,7 +1,7 @@
 use crate::db::{ mongo_connection, redis_connection };
 use axum::response::Json;
 use serde_json::{Value, json};
-
+use futures::stream::{Collect, StreamExt,TryStreamExt};
 use mongodb::{bson::{ doc, oid::ObjectId, DateTime, Document }, error::Error, Database, Cursor, results::UpdateResult };
 use redis::{Commands, RedisError};
 
@@ -10,7 +10,7 @@ pub async fn get_key() -> Json<Value> {
     Ok(res) => {
       Json(serde_json::from_str(&res).unwrap())
     }
-    _ => {
+    Err(e) => {
       let res = response().await;
       let _ = set_cache(res.to_string()).await;
       res
@@ -28,7 +28,6 @@ async fn cached_response()-> Result<String, RedisError> {
             Ok(val)
           },
           Err(e) => {
-            dbg!(&e);
             Err(e)
           }
         };
@@ -45,16 +44,12 @@ async fn cached_response()-> Result<String, RedisError> {
 async fn response () -> Json<Value> {
   match mongo_connection().await {
     Ok(config) => {
-       let res = config.database.collection::<Document>("settings").find(doc! {}).await.unwrap().deserialize_current();
+      let collection = config.database.collection::<Document>("settings");
+      let cursor = collection.find(doc! {}).await.unwrap();
+      let results: Vec<Document> = cursor.try_collect().await.unwrap();
+      
       config.client.shutdown().await;
-      match res {
-        Ok(val) => {
-          Json(json!(val))
-        },
-        Err(e) => {
-          Json(json!({ "error": e.to_string() }))
-        }
-      }
+      Json(serde_json::to_value(results).unwrap())
     },
     Err(e) => {
       Json(json!({ "error": e.to_string() }))
