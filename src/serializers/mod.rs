@@ -62,7 +62,7 @@ async fn menu () -> Json<Value> {
   match mongo_connection().await {
     Ok(config) => {
       let collection = config.database.collection::<Document>("menus");
-      let result = collection.find_one(doc! {"rule":"admin"}).await.unwrap();
+      let result = collection.find_one(doc! {"rules":"admin"}).await.unwrap();
       tokio::spawn(async move {
         let _ = config.client.shutdown();
       });
