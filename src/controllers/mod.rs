@@ -6,7 +6,6 @@ use crate::serializers::*;
 struct ExtractUserAgent(HeaderValue);
 
 pub async fn hello(request:Request) -> Json<Value> {
-  // dbg!(request.headers().get("user-agent"));
   get_key().await
 }
 
