@@ -9,9 +9,9 @@ pub async fn get_key() -> Json<Value> {
     Ok(res) => {
       Json(serde_json::from_str(&res).unwrap())
     }
-    Err(e) => {
+    _ => {
       let res = response().await;
-      let _ = set_cache(res.to_string()).await;
+      tokio::spawn(set_cache(res.to_string()));
       res
     }
   }
@@ -21,7 +21,6 @@ async fn cached_response()-> Result<String, RedisError> {
   match redis_connection().await {
     Ok(mut conn) => {
         let get: Result<String, RedisError> = conn.get("ALL_KEYS");
-
         let res: Result<String, RedisError> = match get  {
           Ok(val) => {
             Ok(val)
@@ -34,7 +33,6 @@ async fn cached_response()-> Result<String, RedisError> {
         return res;
     },
     Err(e) => {
-      dbg!(&e);
       Err(e)
     }
   }
@@ -45,8 +43,9 @@ async fn response () -> Json<Value> {
     Ok(config) => {
       let collection = config.database.collection::<Document>("settings");
       let result = collection.find_one(doc! {"rule":"admin"}).await.unwrap();
-      
-      config.client.shutdown().await;
+      tokio::spawn(async move {
+        let _ = config.client.shutdown();
+      });
       Json(json!(result))
     },
     Err(e) => {
@@ -56,15 +55,11 @@ async fn response () -> Json<Value> {
 }
 
 async fn set_cache (res: String) {
-  dbg!(&res);
   match redis_connection().await {
     Ok(mut conn) => {
-      let test: Result<String, RedisError> = conn.set_ex("ALL_KEYS", res, 3600);
-      dbg!(test);
+      let _: Result<String, RedisError> = conn.set_ex("ALL_KEYS", res, 30);
       drop(conn);
     },
-    Err(e) => {
-      dbg!(e);
-    }
+    _ => {}
   }
 }
