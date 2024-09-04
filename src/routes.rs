@@ -3,12 +3,12 @@ use axum::{
   Router,
   routing::get
 };
-use crate::controllers::hello;
+use crate::controllers::*;
 use crate::middleware::Validations;
 
 pub fn routes() -> Router {
   Router::new()
   .route("/", get(hello))
-  .route("/oi", get(hello))
+  .route("/menu", get(menu))
   .layer(middleware::from_fn(Validations::new))
 }

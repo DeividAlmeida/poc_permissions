@@ -17,6 +17,10 @@ pub async fn get_key() -> Json<Value> {
   }
 }
 
+pub async fn get_menu() -> Json<Value> {
+  menu().await
+}
+
 async fn cached_response()-> Result<String, RedisError> {
   match redis_connection().await {
     Ok(mut conn) => {
@@ -42,6 +46,22 @@ async fn response () -> Json<Value> {
   match mongo_connection().await {
     Ok(config) => {
       let collection = config.database.collection::<Document>("settings");
+      let result = collection.find_one(doc! {"rule":"admin"}).await.unwrap();
+      tokio::spawn(async move {
+        let _ = config.client.shutdown();
+      });
+      Json(json!(result))
+    },
+    Err(e) => {
+      Json(json!({ "error": e.to_string() }))
+    }
+  }
+}
+
+async fn menu () -> Json<Value> {
+  match mongo_connection().await {
+    Ok(config) => {
+      let collection = config.database.collection::<Document>("menus");
       let result = collection.find_one(doc! {"rule":"admin"}).await.unwrap();
       tokio::spawn(async move {
         let _ = config.client.shutdown();
