@@ -1,49 +1,30 @@
-use crate::db::mongo_connection;
-use mongodb::bson::{ doc, Document };
+use mongodb::bson::doc;
 use axum::{http::StatusCode, response::Json};
 use serde_json::{Value, json};
-use super::Cache;
+use super::Queries;
 
 pub(crate) trait Settings {
   async fn get () -> (StatusCode, Json<Value>);
-  async fn get_settins_query () -> Result<Document, mongodb::error::Error>;
 }
 
-impl<'a> Settings for Cache<'a> {
+impl Settings for Queries {
   async fn get () -> (StatusCode, Json<Value>) {
-    let mut cache = Cache::new("settings");
-    match cache.get().await {
-      Ok(res) => (StatusCode::OK, Json::<Value>(serde_json::from_str(&res).unwrap_or_else(|_| json!({"error": "Invalid JSON"})))),
-      Err(_) => {
-        match Self::get_settins_query().await {
-          Ok(res) => {
-            let data = (StatusCode::OK, Json::<Value>(json!(res)));
-            tokio::spawn(async move {
-              cache.set(res.to_string());
-              cache.create().await 
-            });
-            data
-          },
-          Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, Json::<Value>(json!({"error": e.to_string()})))
-          }
-        }
+    if let Ok(res) = Self::redis_get("settings").await {
+      let json_value = serde_json::from_str(&res).unwrap_or_else(|e| json!({"error": e.to_string()}));
+      return (StatusCode::OK, Json(json_value));
+    }
+
+    match Self::mongodb_find_one(doc! {"rule": "admin"}, "settings").await {
+      Ok(res) => {
+        let response = (StatusCode::OK, Json::<Value>(json!(res)));
+        tokio::spawn(async move {
+          Self::redis_set("settings", json!(&res).to_string()).await 
+        });
+        response
+      },
+      Err(e) => {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json::<Value>(json!({"error": e.to_string()})))
       }
     }
   }
-
-  async fn get_settins_query() -> Result<Document, mongodb::error::Error> {
-    let config: crate::db::DatabaseConneceting = mongo_connection().await?;
-    let collection = config.database.collection::<Document>("settings");
-
-    tokio::spawn(async move {
-        let _ = config.client.shutdown();
-    });
-
-    match collection.find_one(doc! {"rule": "admin"}).await {
-        Ok(Some(doc)) => Ok(doc),
-        Ok(None) => Ok(doc! {}),
-        Err(e) => Err(e),
-    }
-}
 }
