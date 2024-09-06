@@ -1,4 +1,6 @@
 use axum::{body::Body, extract::Request, http::{HeaderValue, StatusCode}, middleware::Next, response::IntoResponse};
+mod tests;
+
 pub(crate) struct Validations<'b> {
   origin: Option<&'b HeaderValue>,
   auth: Option<&'b HeaderValue>,
@@ -27,7 +29,7 @@ impl<'a> Validations <'_> {
     }
   }
 
-  fn origin_validation(&self) -> ( StatusCode, &'a str ){
+  fn origin_validation(&self) -> ( StatusCode, &'static str ){
     match self.origin {
       Some(origin) => { 
         if origin == "api" || origin == "mobile" {
@@ -42,10 +44,10 @@ impl<'a> Validations <'_> {
     }
   }
 
-  fn auth_validation(&self) -> ( StatusCode, &'a str ) {
+  fn auth_validation(&self) -> ( StatusCode, &'static str ) {
     match self.auth {
       Some(auth) => {
-        if auth != "123" {
+        if auth != "Token token=\"123\"" {
           return (StatusCode::OK, "OK")
         }
         return (StatusCode::UNAUTHORIZED, "Invalid token")

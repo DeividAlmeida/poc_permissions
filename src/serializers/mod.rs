@@ -1,5 +1,6 @@
 mod settings;
 mod menus;
+mod tests;
 
 use settings::Settings;
 use menus::Menus;
@@ -16,10 +17,9 @@ impl Queries {
     conn.get(key)
   }
 
-  async fn redis_set (key: &str, value: String) {
-    if let Ok(mut conn) = redis_connection().await {
-      let _: Result<String, RedisError> = conn.set(key, value);
-    }
+  async fn redis_set (key: &str, value: String) -> Result<String, RedisError> {
+    let mut conn = redis_connection().await?;
+    conn.set(key, value)
   }
 
   async fn mongodb_find_one(filter: Document, collection: &str) -> Result<Document, mongodb::error::Error> {
@@ -42,7 +42,7 @@ pub async fn get_settings() -> Response {
   <Queries as Settings>::get().await.into_response()
 }
 
-pub async fn get_menu() -> Response {
+pub async fn get_menus() -> Response {
   <Queries as Menus>::get().await.into_response()
 }
 
