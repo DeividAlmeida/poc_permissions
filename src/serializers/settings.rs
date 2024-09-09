@@ -1,10 +1,11 @@
-use mongodb::bson::doc;
-use axum::{http::StatusCode, response::Json};
+use mongodb::bson::{doc, to_bson};
+use axum::{body::Body, http::StatusCode, response::Json};
 use serde_json::{Value, json};
 use super::Queries;
 
 pub(crate) trait Settings {
   async fn get () -> (StatusCode, Json<Value>);
+  async fn set (data: Value) -> (StatusCode, Json<Value>);
 }
 
 impl Settings for Queries {
@@ -13,7 +14,6 @@ impl Settings for Queries {
       let json_value = serde_json::from_str(&res).unwrap_or_else(|e| json!({"error": e.to_string()}));
       return (StatusCode::OK, Json(json_value));
     }
-
     match Self::mongodb_find_one(doc! {"rule": "admin"}, "settings").await {
       Ok(res) => {
         let response = (StatusCode::OK, Json::<Value>(json!(res)));
@@ -27,4 +27,16 @@ impl Settings for Queries {
       }
     }
   }
+
+  async fn set (data: Value) -> (StatusCode, Json<Value>) {
+    match Self::mongodb_insert_one(doc! {"data": to_bson(&data).unwrap()}, "settings").await {
+      Ok(res) => {
+        (StatusCode::OK, Json::<Value>(json!(res)))
+      },
+      Err(e) => {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json::<Value>(json!({"error": e.to_string()})))
+      }
+    }
+  }
+
 }

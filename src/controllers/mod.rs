@@ -1,11 +1,16 @@
 use axum::{
-  extract::Request,
-  response::Response
+   body::{to_bytes, Body}, extract::Request, response::Response, Json
 };
+use serde_json::Value;
+
 use crate::serializers::*;
 
-pub async fn settings(request:Request) -> Response {
+pub async fn list_settings(request:Request) -> Response {
   get_settings().await
+}
+
+pub async fn create_settings(Json(data): Json<Value>) -> Response {
+  set_settings(data).await
 }
 
 pub async fn menus(request:Request) -> Response  {

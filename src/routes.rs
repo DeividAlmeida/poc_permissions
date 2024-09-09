@@ -1,14 +1,15 @@
 use axum::{
-  middleware::{self},
-  Router,
-  routing::get
+  middleware::{self}, routing::get, Router
 };
 use crate::controllers::*;
 use crate::middleware::Validations;
 
 pub fn routes() -> Router {
   Router::new()
-  .route("/", get(settings))
+  .route("/", 
+    get(list_settings)
+    .post(create_settings)
+  )
   .route("/menu", get(menus))
   .layer(middleware::from_fn(Validations::new))
 }
