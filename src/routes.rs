@@ -12,4 +12,8 @@ pub fn routes() -> Router {
   )
   .route("/menu", get(menus))
   .layer(middleware::from_fn(Validations::new))
+  .route("/timeline", 
+    get(list_timelines)
+    .post(create_timelines)
+  )
 }

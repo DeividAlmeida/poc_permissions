@@ -1,12 +1,14 @@
 mod settings;
 mod menus;
+mod timelines;
 mod tests;
 
 use serde_json::Value;
 use settings::Settings;
+use timelines::Timelines;
 use menus::Menus;
 use axum::{body::Body, extract::Request, response::{IntoResponse, Response}};
-use crate::db::{redis_connection, mongo_connection};
+use crate::{controllers::*, db::{mongo_connection, redis_connection}};
 use mongodb::bson::{ doc, Document, DateTime };
 use redis::{Commands, RedisError};
 
@@ -54,6 +56,19 @@ impl Queries {
       Err(e) => Err(e),
     }
   }
+  async fn mongodb_insert_many(data: Vec<Document>, collection: &str) -> Result<Document, mongodb::error::Error> {
+    let config: crate::db::DatabaseConneceting = mongo_connection().await?;
+    let collection = config.database.collection::<Document>(collection);
+
+    tokio::spawn(async move {
+      let _ = config.client.shutdown();
+    });
+
+    match collection.insert_many(data).await {
+      Ok(doc) => Ok(doc! {"success": true}),
+      Err(e) => Err(e),
+    }
+  }
 }
 
 pub async fn get_settings() -> Response {
@@ -66,5 +81,9 @@ pub async fn get_menus() -> Response {
 
 pub async fn set_settings(data: Value) -> Response {
   <Queries as Settings>::set(data).await.into_response()
+}
+
+pub async fn set_timelines(data: Value) -> Response {
+  <Queries as Timelines>::set(data).await.into_response()
 }
 

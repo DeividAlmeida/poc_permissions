@@ -16,3 +16,11 @@ pub async fn create_settings(Json(data): Json<Value>) -> Response {
 pub async fn menus(request:Request) -> Response  {
   get_menus().await
 }
+
+pub async fn create_timelines(Json(data): Json<Value>) -> Response  {
+  set_timelines(data).await
+}
+
+pub async fn list_timelines(request:Request) -> Response  {
+  get_settings().await
+}
