@@ -1,5 +1,5 @@
 use mongodb::bson::{doc, to_bson};
-use axum::{body::Body, http::StatusCode, response::Json};
+use axum::{http::StatusCode, response::Json};
 use serde_json::{Value, json};
 use super::Queries;
 
