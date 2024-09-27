@@ -1,12 +1,14 @@
 mod settings;
 mod menus;
 mod timelines;
+mod modules;
 mod tests;
 
 use serde_json::Value;
 use settings::Settings;
 use timelines::Timelines;
 use menus::Menus;
+use modules::Modules;
 use axum::response::{IntoResponse, Response};
 use crate::db::{mongo_connection, redis_connection};
 use mongodb::bson::{ doc,  DateTime, Document };
@@ -39,6 +41,26 @@ impl Queries {
     }
   }
   
+  async fn mongodb_find(filter: Document, collection: &str) -> Result<Vec<Document>, mongodb::error::Error> {
+    let config: crate::db::DatabaseConneceting = mongo_connection().await?;
+    let collection = config.database.collection::<Document>(collection);
+
+    tokio::spawn(async move {
+      let _ = config.client.shutdown();
+    });
+
+    match collection.find(filter).await {
+      Ok(mut cursor) => {
+        let mut res = Vec::new();
+        while cursor.advance().await? {
+          res.push(cursor.deserialize_current().unwrap_or_default());
+        }
+        Ok(res)
+      },
+      Err(e) => Err(e),
+    }
+  }
+
   async fn mongodb_aggregate(pipeline: Vec<Document>, collection: &str) -> Result<Vec<Document>, mongodb::error::Error> {
     let config: crate::db::DatabaseConneceting = mongo_connection().await?;
     let collection = config.database.collection::<Document>(collection);
@@ -93,6 +115,10 @@ pub async fn get_settings() -> Response {
 
 pub async fn get_menus() -> Response {
   <Queries as Menus>::get().await.into_response()
+}
+
+pub async fn get_modules(data: Value) -> Response {
+  <Queries as Modules>::get(data).await.into_response()
 }
 
 pub async fn set_settings(data: Value) -> Response {
